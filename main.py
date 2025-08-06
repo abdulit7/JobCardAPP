@@ -1,3 +1,4 @@
+
 import os
 os.environ["FLET_SECRET_KEY"] = "mysecret123"
 import flet as ft
@@ -20,7 +21,11 @@ def main(page: ft.Page):
     page.scroll = ft.ScrollMode.ADAPTIVE
     page.padding = 0
     page.bgcolor = ft.Colors.BLUE_GREY_50
-    page.window_maximized = True
+    # Set mobile-friendly window size to match jobcard_client.py
+    page.window.maximized = False
+    page.window.width = 400
+    page.window.height = 700
+    page.window.resizable = True
     page.top_bar_ref = ft.Ref[TopBar]()
 
     def on_resize(e):
@@ -49,7 +54,7 @@ def main(page: ft.Page):
             page.views.append(ft.View(
                 route="/login",
                 controls=[login_page(page)],
-                padding=0,
+                padding=ft.padding.only(top=30),  # Add 30px top padding for mobile status bar
                 bgcolor=ft.Colors.WHITE
             ))
             page.snack_bar = ft.SnackBar(ft.Text("Session expired. Please log in again."), duration=4000)
@@ -62,7 +67,7 @@ def main(page: ft.Page):
             page.views.append(ft.View(
                 route="/login",
                 controls=[login_page(page)],
-                padding=0,
+                padding=ft.padding.only(top=30),  # Add 30px top padding for mobile status bar
                 bgcolor=ft.Colors.WHITE
             ))
             page.update()
@@ -80,7 +85,7 @@ def main(page: ft.Page):
         layout = ft.Column(
             controls=[
                 ft.Container(content=top_bar.build()),
-                ft.Container(content=content, expand=True, padding=20)
+                ft.Container(content=content, expand=True, padding=ft.padding.symmetric(horizontal=20))
             ],
             expand=True,
             spacing=0
@@ -90,7 +95,7 @@ def main(page: ft.Page):
         page.views.append(ft.View(
             route=route,
             controls=[layout],
-            padding=0,
+            padding=ft.padding.only(top=30),  # Add 30px top padding for mobile status bar
             bgcolor=ft.Colors.WHITE
         ))
         page.update()
