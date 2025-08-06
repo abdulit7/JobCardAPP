@@ -1,5 +1,4 @@
 import os
-os.environ["FLET_SECRET_KEY"] = "mysecret123"
 import flet as ft
 import sqlite3
 import mysql.connector
@@ -30,6 +29,7 @@ class JobCardPage(ft.Container):
         self.sqlite_db_path = "job_cards.db"
         self.device_id = str(uuid.uuid4())[-4:]  # Last 4 digits of UUID for device-specific job numbers
         self.is_syncing = False  # Lock for sync/upload operations
+        self.is_updating = False  # Flag to prevent recursive UI updates
         # Safely access user department from session
         user = page.session.get("user")
         self.user_department = user.get("department_name", "") if isinstance(user, dict) else ""
@@ -218,11 +218,16 @@ class JobCardPage(ft.Container):
                 conn.close()
 
     def safe_update(self, context=""):
-        """Safely update the UI."""
+        """Safely update the UI without triggering recursive snackbar calls."""
+        if self.is_updating:
+            return
+        self.is_updating = True
         try:
             self.page.update()
-        except Exception as e:
-            self.show_snack_bar(f"UI update failed: {e}", ft.Colors.RED_800)
+        except Exception:
+            pass
+        finally:
+            self.is_updating = False
 
     def is_online(self):
         """Check if the MySQL server is reachable."""
@@ -337,7 +342,9 @@ class JobCardPage(ft.Container):
             self.show_snack_bar("Job cards downloaded successfully!", ft.Colors.TEAL_600)
             await self.load_job_cards()
             try:
-                self.page.add(Audio(src="https://www.soundjay.com/buttons/beep-01a.mp3", autoplay=True))
+                audio = Audio(src="assets/beep.mp3", autoplay=True, on_state_changed=self.remove_audio)
+                self.page.overlay.append(audio)
+                self.safe_update("play_sync_audio")
             except Exception as e:
                 self.show_snack_bar(f"Error playing audio: {e}", ft.Colors.RED_800)
         except mysql.connector.Error as e:
@@ -415,7 +422,9 @@ class JobCardPage(ft.Container):
             self.show_snack_bar(f"Uploaded {uploaded_count} job cards successfully!", ft.Colors.TEAL_600)
             await self.load_job_cards()
             try:
-                self.page.add(Audio(src="https://www.soundjay.com/buttons/beep-01a.mp3", autoplay=True))
+                audio = Audio(src="assets/beep.mp3", autoplay=True, on_state_changed=self.remove_audio)
+                self.page.overlay.append(audio)
+                self.safe_update("play_upload_audio")
             except Exception as e:
                 self.show_snack_bar(f"Error playing audio: {e}", ft.Colors.RED_800)
         except mysql.connector.Error as e:
@@ -438,6 +447,12 @@ class JobCardPage(ft.Container):
             self.sync_button.disabled = False
             self.upload_button.disabled = False
             self.safe_update("enable_upload_buttons")
+
+    async def remove_audio(self, e):
+        """Remove audio component from overlay after playback."""
+        if e.control in self.page.overlay:
+            self.page.overlay.remove(e.control)
+            self.safe_update("remove_audio")
 
     async def filter_job_cards(self, e):
         """Filter job cards by status."""
@@ -511,7 +526,7 @@ class JobCardPage(ft.Container):
                         icon_color=ft.Colors.BLUE_700,
                         icon_size=30,
                         tooltip="View Details",
-                        on_click=lambda e, jc=jc: self.show_job_card_detail(jc),
+                        on_click=lambda e, jc=jc: self.page.run_task(self.show_job_card_detail, jc),
                         data=jc.get('job_number', 'N/A')
                     )
                 )
@@ -818,7 +833,9 @@ class JobCardPage(ft.Container):
             await self.load_job_cards()
             await self.close_dialog(None)
             try:
-                self.page.add(Audio(src="https://www.soundjay.com/buttons/beep-01a.mp3", autoplay=True))
+                audio = Audio(src="assets/beep.mp3", autoplay=True, on_state_changed=self.remove_audio)
+                self.page.overlay.append(audio)
+                self.safe_update("play_save_audio")
             except Exception as e:
                 self.show_snack_bar(f"Error playing audio: {e}", ft.Colors.RED_800)
         except (sqlite3.Error, mysql.connector.Error) as e:
