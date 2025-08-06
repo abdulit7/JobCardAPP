@@ -126,6 +126,7 @@ class TopBar(ft.Container):
                 ),
                 content=ft.Column([
                     ft.Row([
+                        ft.Divider(),
                         menubar,
                         ft.Container(expand=True),
                         ft.Row([
