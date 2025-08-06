@@ -2,11 +2,7 @@ import flet as ft
 import mysql.connector
 from mysql.connector import Error
 import sqlite3
-import logging
 from jobcard_client import JobCardPage  # Import JobCardPage for sync
-
-# Set up logging for debugging
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def login_page(page: ft.Page):
     page.title = "Job Card System - Login"
@@ -19,7 +15,6 @@ def login_page(page: ft.Page):
 
     # Session management
     page.session.set("user", None)
-    logging.info("[LOGIN_PAGE] Session cleared on login page load")
 
     # Initialize snackbar
     snack_bar = ft.SnackBar(
@@ -54,9 +49,11 @@ def login_page(page: ft.Page):
                 )
             ''')
             conn.commit()
-            logging.info("SQLite users table initialized successfully in job_cards.db")
+            snack_bar.content.value = "Database initialized successfully!"
+            snack_bar.bgcolor = ft.Colors.TEAL_600
+            snack_bar.open = True
+            page.update()
         except sqlite3.Error as e:
-            logging.error(f"Error initializing SQLite users table: {e}")
             snack_bar.content.value = f"Error initializing database: {e}"
             snack_bar.bgcolor = ft.Colors.RED_800
             snack_bar.open = True
@@ -117,7 +114,6 @@ def login_page(page: ft.Page):
                 "SELECT emp_id, password, name, department_name, can_login FROM users WHERE can_login = 1"
             )
             users = cursor_mysql.fetchall()
-            logging.info(f"Fetched {len(users)} users with can_login = 1 from MySQL")
 
             # Connect to SQLite
             conn_sqlite = sqlite3.connect(sqlite_db_path)
@@ -140,20 +136,17 @@ def login_page(page: ft.Page):
                     user["can_login"]
                 ))
             conn_sqlite.commit()
-            logging.info(f"Synced {len(users)} users to SQLite in job_cards.db")
 
             snack_bar.content.value = f"Synced {len(users)} users successfully!"
             snack_bar.bgcolor = ft.Colors.TEAL_600
             snack_bar.duration = 4000
             snack_bar.open = True
         except mysql.connector.Error as e:
-            logging.error(f"Error syncing users from MySQL: {e}")
             snack_bar.content.value = f"Error syncing users: {e}"
             snack_bar.bgcolor = ft.Colors.RED_800
             snack_bar.duration = 4000
             snack_bar.open = True
         except sqlite3.Error as e:
-            logging.error(f"Error saving users to SQLite: {e}")
             snack_bar.content.value = f"Error saving users to SQLite: {e}"
             snack_bar.bgcolor = ft.Colors.RED_800
             snack_bar.duration = 4000
@@ -201,14 +194,12 @@ def login_page(page: ft.Page):
                     "name": user["name"],
                     "department_name": user["department_name"]
                 })
-                logging.info(f"[LOGIN] Session user set: {page.session.get('user')}")
                 # Initialize JobCardPage and sync job cards
                 job_card_page = JobCardPage(page)
                 page.views.append(ft.View("/jobcard", [job_card_page]))
                 page.go("/jobcard")
                 # Trigger sync after navigation
-                import asyncio
-                asyncio.create_task(job_card_page.sync_from_mysql(None))
+                page.run_task(job_card_page.sync_from_mysql, None)
                 snack_bar.content.value = f"Login successful as {user['name']}. Syncing job cards..."
                 snack_bar.bgcolor = ft.Colors.TEAL_600
                 snack_bar.duration = 4000
@@ -219,7 +210,6 @@ def login_page(page: ft.Page):
                 snack_bar.duration = 6000
                 snack_bar.open = True
         except sqlite3.Error as e:
-            logging.error(f"[LOGIN] SQLite error: {e}")
             snack_bar.content.value = f"Database error: {e}"
             snack_bar.bgcolor = ft.Colors.RED_800
             snack_bar.duration = 4000
