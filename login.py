@@ -30,22 +30,36 @@ def login_page(page: ft.Page):
     )
     page.overlay.append(snack_bar)
 
-    # Initialize SQLite database for users and job cards
+    # Initialize SQLite database for departments and users
     sqlite_db_path = "job_cards.db"
     def init_sqlite_db():
-        """Initialize SQLite database and create users table."""
+        """Initialize SQLite database and create department and users tables."""
         conn = None
         cursor = None
         try:
             conn = sqlite3.connect(sqlite_db_path)
             cursor = conn.cursor()
+            # Enable foreign key support
+            cursor.execute("PRAGMA foreign_keys = ON")
+            # Create department table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS department (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    description TEXT,
+                    created_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
+                    updated_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
+                )
+            ''')
+            # Create users table with foreign key to department
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS users (
                     emp_id TEXT PRIMARY KEY,
                     password TEXT NOT NULL,
                     name TEXT NOT NULL,
                     department_name TEXT NOT NULL,
-                    can_login INTEGER NOT NULL
+                    can_login INTEGER NOT NULL,
+                    FOREIGN KEY (department_name) REFERENCES department(name) ON DELETE RESTRICT
                 )
             ''')
             conn.commit()
@@ -94,7 +108,7 @@ def login_page(page: ft.Page):
     )
 
     def sync_users(e):
-        """Sync users with can_login = 1 from MySQL to SQLite."""
+        """Sync departments and users with can_login = 1 from MySQL to SQLite."""
         db_config = {
             "host": "200.200.200.23",
             "user": "root",
@@ -110,20 +124,35 @@ def login_page(page: ft.Page):
             # Connect to MySQL
             conn_mysql = mysql.connector.connect(**db_config)
             cursor_mysql = conn_mysql.cursor(dictionary=True)
+
+            # Sync departments from MySQL to SQLite
+            cursor_mysql.execute("SELECT id, name, description, created_at, updated_at FROM department")
+            departments = cursor_mysql.fetchall()
+            conn_sqlite = sqlite3.connect(sqlite_db_path)
+            cursor_sqlite = conn_sqlite.cursor()
+            cursor_sqlite.execute("PRAGMA foreign_keys = ON")
+            cursor_sqlite.execute("DELETE FROM department")
+            conn_sqlite.commit()
+            for dept in departments:
+                cursor_sqlite.execute("""
+                    INSERT OR REPLACE INTO department (id, name, description, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    dept["id"],
+                    dept["name"],
+                    dept["description"],
+                    dept["created_at"].strftime('%Y-%m-%d %H:%M:%S') if dept["created_at"] else None,
+                    dept["updated_at"].strftime('%Y-%m-%d %H:%M:%S') if dept["updated_at"] else None
+                ))
+            conn_sqlite.commit()
+
+            # Sync users from MySQL to SQLite
             cursor_mysql.execute(
                 "SELECT emp_id, password, name, department_name, can_login FROM users WHERE can_login = 1"
             )
             users = cursor_mysql.fetchall()
-
-            # Connect to SQLite
-            conn_sqlite = sqlite3.connect(sqlite_db_path)
-            cursor_sqlite = conn_sqlite.cursor()
-
-            # Clear existing users
             cursor_sqlite.execute("DELETE FROM users")
             conn_sqlite.commit()
-
-            # Insert users into SQLite
             for user in users:
                 cursor_sqlite.execute("""
                     INSERT OR REPLACE INTO users (emp_id, password, name, department_name, can_login)
@@ -137,17 +166,17 @@ def login_page(page: ft.Page):
                 ))
             conn_sqlite.commit()
 
-            snack_bar.content.value = f"Synced {len(users)} users successfully!"
+            snack_bar.content.value = f"Synced {len(departments)} departments and {len(users)} users successfully!"
             snack_bar.bgcolor = ft.Colors.TEAL_600
             snack_bar.duration = 4000
             snack_bar.open = True
         except mysql.connector.Error as e:
-            snack_bar.content.value = f"Error syncing users: {e}"
+            snack_bar.content.value = f"Error syncing data: {e}"
             snack_bar.bgcolor = ft.Colors.RED_800
             snack_bar.duration = 4000
             snack_bar.open = True
         except sqlite3.Error as e:
-            snack_bar.content.value = f"Error saving users to SQLite: {e}"
+            snack_bar.content.value = f"Error saving data to SQLite: {e}"
             snack_bar.bgcolor = ft.Colors.RED_800
             snack_bar.duration = 4000
             snack_bar.open = True
@@ -181,6 +210,7 @@ def login_page(page: ft.Page):
             conn = sqlite3.connect(sqlite_db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON")
             cursor.execute(
                 "SELECT emp_id, password, name, department_name, can_login FROM users WHERE emp_id = ? AND password = ?",
                 (emp_id, password)
