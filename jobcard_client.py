@@ -1,3 +1,5 @@
+
+
 import os
 import flet as ft
 import sqlite3
@@ -21,7 +23,7 @@ class JobCardPage(ft.Container):
         self.page.window.width = 400
         self.page.window.height = 700
         self.expand = True
-        self.padding = ft.padding.all(6)
+        self.padding = ft.padding.all(10)
         self.bgcolor = ft.Colors.BLUE_GREY_50
         self.job_cards = []
         self.departments = []
@@ -36,12 +38,12 @@ class JobCardPage(ft.Container):
 
         # Initialize snackbar
         self.snack_bar = ft.SnackBar(
-            content=ft.Text("", size=12, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
+            content=ft.Text("", size=14, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
             bgcolor=ft.Colors.BLACK,
             duration=6000,
             show_close_icon=True,
             behavior=ft.SnackBarBehavior.FLOATING,
-            width=340,
+            width=360,
             padding=10,
             margin=ft.margin.only(bottom=10),
             shape=ft.RoundedRectangleBorder(radius=8)
@@ -50,13 +52,17 @@ class JobCardPage(ft.Container):
 
         # Initialize UI components
         self.add_job_card_button = ft.ElevatedButton(
-            text="New Job",
-            icon=ft.Icons.ADD_CIRCLE,
+            text="Create",
+            icon=ft.Icons.ADD_CIRCLE_OUTLINE,
             bgcolor=ft.Colors.TEAL_600,
             color=ft.Colors.WHITE,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), overlay_color=ft.Colors.TEAL_800),
-            width=100,
-            height=45,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=10),
+                overlay_color=ft.Colors.TEAL_800,
+                elevation={"pressed": 2, "": 6}
+            ),
+            width=90,
+            height=48,
             on_click=self.open_job_card_dialog
         )
 
@@ -64,23 +70,31 @@ class JobCardPage(ft.Container):
             icon=ft.Icons.SYNC,
             icon_color=ft.Colors.WHITE,
             tooltip="Sync from MySQL",
-            icon_size=20,
-            bgcolor=ft.Colors.BLUE_800,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), overlay_color=ft.Colors.BLUE_600),
-            width=40,
-            height=40,
+            icon_size=24,
+            bgcolor=ft.Colors.BLUE_700,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=10),
+                overlay_color=ft.Colors.BLUE_900,
+                elevation={"pressed": 2, "": 6}
+            ),
+            width=48,
+            height=48,
             on_click=self.sync_from_mysql
         )
 
         self.upload_button = ft.IconButton(
-            icon=ft.Icons.UPLOAD_FILE,
+            icon=ft.Icons.UPLOAD,
             icon_color=ft.Colors.WHITE,
             tooltip="Upload to MySQL",
-            icon_size=20,
-            bgcolor=ft.Colors.BLUE_800,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), overlay_color=ft.Colors.BLUE_600),
-            width=40,
-            height=40,
+            icon_size=24,
+            bgcolor=ft.Colors.BLUE_700,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=10),
+                overlay_color=ft.Colors.BLUE_900,
+                elevation={"pressed": 2, "": 6}
+            ),
+            width=48,
+            height=48,
             on_click=self.upload_to_mysql
         )
 
@@ -96,63 +110,57 @@ class JobCardPage(ft.Container):
             on_change=self.filter_job_cards,
             border_color=ft.Colors.BLUE_300,
             color=ft.Colors.BLUE_900,
-            text_size=12,
+            text_size=14,
             width=120,
-            dense=True
+            dense=True,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=8
         )
 
-        self.job_card_table = ft.DataTable(
-            columns=[
-                ft.DataColumn(ft.Text("Job No", size=14, weight=ft.FontWeight.BOLD, width=100)),
-                ft.DataColumn(ft.Text("Title", size=14, weight=ft.FontWeight.BOLD, width=220)),
-                ft.DataColumn(ft.Text("Status", size=14, weight=ft.FontWeight.BOLD, width=100)),
-                ft.DataColumn(ft.Text("Actions", size=14, weight=ft.FontWeight.BOLD, width=80))
-            ],
-            rows=[],
-            column_spacing=5,
-            heading_row_height=30,
-            data_row_min_height=24,
-            data_row_max_height=40,
-            border=ft.border.all(1, ft.Colors.BLUE_GREY_200),
-            bgcolor=ft.Colors.WHITE,
-            visible=True
+        self.job_card_list = ft.ListView(
+            controls=[],
+            expand=True,
+            spacing=10,
+            padding=ft.padding.all(5),
+            auto_scroll=True
         )
 
         # Initialize database and load departments
         self.init_sqlite_db()
-        self.load_departments()
+        self.page.run_task(self.load_departments)
 
         # Set up page content
         self.content = ft.Column(
             controls=[
                 ft.Row(
-                    controls=[self.status_filter, self.add_job_card_button, self.sync_button, self.upload_button],
-                    alignment=ft.MainAxisAlignment.START,
+                    controls=[
+                        self.status_filter,
+                        # ft.Container(width=2),  # Spacer
+                        self.add_job_card_button,
+                        self.sync_button,
+                        self.upload_button
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     spacing=5
                 ),
                 ft.Container(
-                    content=ft.ListView(
-                        controls=[
-                            ft.Row(
-                                controls=[self.job_card_table],
-                                scroll=ft.ScrollMode.AUTO
-                            )
-                        ],
-                        expand=True,
-                        spacing=0,
-                        padding=0
-                    ),
-                    width=390,
-                    height=620,
+                    content=self.job_card_list,
+                    width=380,
+                    height=600,
                     border=ft.border.all(1, ft.Colors.BLUE_GREY_300),
-                    border_radius=8,
-                    padding=ft.padding.all(4),
+                    border_radius=10,
+                    padding=ft.padding.all(10),
                     bgcolor=ft.Colors.WHITE,
-                    visible=True
+                    shadow=ft.BoxShadow(
+                        spread_radius=1,
+                        blur_radius=5,
+                        color=ft.Colors.BLUE_GREY_200,
+                        offset=ft.Offset(0, 2)
+                    )
                 )
             ],
             expand=True,
-            spacing=5,
+            spacing=10,
             scroll=ft.ScrollMode.AUTO
         )
 
@@ -160,12 +168,22 @@ class JobCardPage(ft.Container):
         self.page.run_task(self.load_job_cards)
 
     def init_sqlite_db(self):
-        """Initialize SQLite database and create job_cards table."""
+        """Initialize SQLite database and create job_cards and department tables."""
         conn = None
         cursor = None
         try:
             conn = sqlite3.connect(self.sqlite_db_path)
             cursor = conn.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON")
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS department (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    description TEXT,
+                    created_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
+                    updated_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
+                )
+            ''')
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS job_cards (
                     id INTEGER PRIMARY KEY,
@@ -179,7 +197,8 @@ class JobCardPage(ft.Container):
                     entity_type TEXT,
                     entity_id INTEGER,
                     closure_details TEXT,
-                    department_name TEXT NOT NULL
+                    department_name TEXT NOT NULL,
+                    FOREIGN KEY (department_name) REFERENCES department(name) ON DELETE RESTRICT
                 )
             ''')
             conn.commit()
@@ -191,31 +210,72 @@ class JobCardPage(ft.Container):
             if conn:
                 conn.close()
 
-    def load_departments(self):
-        """Load user's department from MySQL if online."""
-        if not self.is_online():
-            self.show_snack_bar("Network error: Cannot fetch departments", ft.Colors.RED_800)
-            return
-        db_config = {
-            "host": "200.200.200.23",
-            "user": "root",
-            "password": "Pak@123",
-            "database": "asm_sys"
-        }
-        conn = None
-        cursor = None
+    async def load_departments(self):
+        """Load departments from MySQL and sync to SQLite if online."""
+        conn_sqlite = None
+        cursor_sqlite = None
+        conn_mysql = None
+        cursor_mysql = None
         try:
-            conn = mysql.connector.connect(**db_config)
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT id, name FROM department WHERE name = %s", (self.user_department,))
-            self.departments = cursor.fetchall()
-        except mysql.connector.Error as e:
-            self.show_snack_bar(f"Error fetching departments: {e}", ft.Colors.RED_800)
+            conn_sqlite = sqlite3.connect(self.sqlite_db_path)
+            cursor_sqlite = conn_sqlite.cursor()
+            cursor_sqlite.execute("PRAGMA foreign_keys = ON")
+            if self.is_online():
+                db_config = {
+                    "host": "200.200.200.23",
+                    "user": "root",
+                    "password": "Pak@123",
+                    "database": "asm_sys"
+                }
+                try:
+                    conn_mysql = mysql.connector.connect(**db_config)
+                    cursor_mysql = conn_mysql.cursor(dictionary=True)
+                    cursor_mysql.execute("SELECT id, name, description, created_at, updated_at FROM department")
+                    departments = cursor_mysql.fetchall()
+                    for dept in departments:
+                        cursor_sqlite.execute("SELECT id FROM department WHERE id = ?", (dept['id'],))
+                        if cursor_sqlite.fetchone():
+                            cursor_sqlite.execute("""
+                                UPDATE department
+                                SET name = ?, description = ?, created_at = ?, updated_at = ?
+                                WHERE id = ?
+                            """, (
+                                dept['name'],
+                                dept['description'],
+                                dept['created_at'].strftime('%Y-%m-%d %H:%M:%S') if dept['created_at'] else None,
+                                dept['updated_at'].strftime('%Y-%m-%d %H:%M:%S') if dept['updated_at'] else None,
+                                dept['id']
+                            ))
+                        else:
+                            cursor_sqlite.execute("""
+                                INSERT INTO department (id, name, description, created_at, updated_at)
+                                VALUES (?, ?, ?, ?, ?)
+                            """, (
+                                dept['id'],
+                                dept['name'],
+                                dept['description'],
+                                dept['created_at'].strftime('%Y-%m-%d %H:%M:%S') if dept['created_at'] else None,
+                                dept['updated_at'].strftime('%Y-%m-%d %H:%M:%S') if dept['updated_at'] else None
+                            ))
+                        conn_sqlite.commit()
+                except mysql.connector.Error as e:
+                    self.show_snack_bar(f"Error syncing departments: {e}", ft.Colors.RED_800)
+                finally:
+                    if cursor_mysql:
+                        cursor_mysql.close()
+                    if conn_mysql:
+                        conn_mysql.close()
+            cursor_sqlite.execute("SELECT id, name FROM department WHERE name = ?", (self.user_department,))
+            self.departments = [dict(id=row[0], name=row[1]) for row in cursor_sqlite.fetchall()]
+            if not self.departments:
+                self.show_snack_bar("No departments found. Sync required.", ft.Colors.YELLOW_800)
+        except sqlite3.Error as e:
+            self.show_snack_bar(f"Error loading departments: {e}", ft.Colors.RED_800)
         finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+            if cursor_sqlite:
+                cursor_sqlite.close()
+            if conn_sqlite:
+                conn_sqlite.close()
 
     def safe_update(self, context=""):
         """Safely update the UI without triggering recursive snackbar calls."""
@@ -246,6 +306,7 @@ class JobCardPage(ft.Container):
             conn = sqlite3.connect(self.sqlite_db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON")
             query = "SELECT * FROM job_cards WHERE department_name = ?"
             params = [self.user_department]
             if self.selected_status:
@@ -258,7 +319,7 @@ class JobCardPage(ft.Container):
                     jc['entity_info'] = self.get_entity_info(jc['entity_type'], jc['entity_id'])
                 else:
                     jc['entity_info'] = "No entity assigned"
-            self.job_card_table.rows = self.create_job_card_table()
+            self.job_card_list.controls = self.create_job_card_list()
             if not self.job_cards:
                 self.show_snack_bar("No job cards found for your department. Press Sync to fetch.", ft.Colors.YELLOW_800)
             self.safe_update("load_job_cards")
@@ -281,6 +342,7 @@ class JobCardPage(ft.Container):
         self.is_syncing = True
         self.sync_button.disabled = True
         self.upload_button.disabled = True
+        self.sync_button.content = ft.ProgressRing(width=24, height=24, stroke_width=2)
         self.safe_update("disable_sync_buttons")
         db_config = {
             "host": "200.200.200.23",
@@ -297,6 +359,7 @@ class JobCardPage(ft.Container):
             cursor_mysql = conn_mysql.cursor(dictionary=True)
             conn_sqlite = sqlite3.connect(self.sqlite_db_path)
             cursor_sqlite = conn_sqlite.cursor()
+            cursor_sqlite.execute("PRAGMA foreign_keys = ON")
             cursor_mysql.execute("""
                 SELECT id, job_number, title, description, status, created_date, started_date,
                        completed_date, entity_type, entity_id, closure_details, department_name
@@ -339,7 +402,7 @@ class JobCardPage(ft.Container):
                 except sqlite3.Error as e:
                     self.show_snack_bar(f"Error syncing job card {jc['job_number']}: {e}", ft.Colors.RED_800)
                     continue
-            self.show_snack_bar("Job cards downloaded successfully!", ft.Colors.TEAL_600)
+            self.show_snack_bar(f"Synced {len(mysql_job_cards)} job cards successfully!", ft.Colors.TEAL_600)
             await self.load_job_cards()
             try:
                 audio = Audio(src="assets/beep.mp3", autoplay=True, on_state_changed=self.remove_audio)
@@ -361,6 +424,8 @@ class JobCardPage(ft.Container):
             self.is_syncing = False
             self.sync_button.disabled = False
             self.upload_button.disabled = False
+            self.sync_button.content = None
+            self.sync_button.icon = ft.Icons.SYNC
             self.safe_update("enable_sync_buttons")
 
     async def upload_to_mysql(self, e):
@@ -374,6 +439,7 @@ class JobCardPage(ft.Container):
         self.is_syncing = True
         self.sync_button.disabled = True
         self.upload_button.disabled = True
+        self.upload_button.content = ft.ProgressRing(width=24, height=24, stroke_width=2)
         self.safe_update("disable_upload_buttons")
         db_config = {
             "host": "200.200.200.23",
@@ -389,6 +455,7 @@ class JobCardPage(ft.Container):
             conn_sqlite = sqlite3.connect(self.sqlite_db_path)
             conn_sqlite.row_factory = sqlite3.Row
             cursor_sqlite = conn_sqlite.cursor()
+            cursor_sqlite.execute("PRAGMA foreign_keys = ON")
             cursor_sqlite.execute("SELECT * FROM job_cards WHERE job_number LIKE ? AND department_name = ?", (f"%-D{self.device_id}", self.user_department))
             job_cards = [dict(row) for row in cursor_sqlite.fetchall()]
             conn_mysql = mysql.connector.connect(**db_config)
@@ -446,6 +513,8 @@ class JobCardPage(ft.Container):
             self.is_syncing = False
             self.sync_button.disabled = False
             self.upload_button.disabled = False
+            self.upload_button.content = None
+            self.upload_button.icon = ft.Icons.UPLOAD
             self.safe_update("enable_upload_buttons")
 
     async def remove_audio(self, e):
@@ -505,33 +574,97 @@ class JobCardPage(ft.Container):
             if conn:
                 conn.close()
 
-    def create_job_card_table(self):
-        """Create DataTable rows for job cards."""
+    def create_job_card_list(self):
+        """Create card-based list for job cards."""
         if not self.job_cards:
-            return [ft.DataRow(cells=[
-                ft.DataCell(ft.Text("No job cards found.", size=14, color=ft.Colors.RED_400)),
-                ft.DataCell(ft.Text("")),
-                ft.DataCell(ft.Text("")),
-                ft.DataCell(ft.Text(""))
-            ])]
-        rows = []
+            return [ft.Container(
+                content=ft.Text("No job cards found.", size=16, color=ft.Colors.RED_600, text_align=ft.TextAlign.CENTER),
+                padding=ft.padding.all(20),
+                alignment=ft.alignment.center
+            )]
+        cards = []
         for jc in self.job_cards:
-            rows.append(ft.DataRow(cells=[
-                ft.DataCell(ft.Text(str(jc.get('job_number', 'N/A')), size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_900, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS)),
-                ft.DataCell(ft.Text(str(jc.get('title', 'N/A')), size=14, color=ft.Colors.BLACK, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS)),
-                ft.DataCell(ft.Text(str(jc.get('status', 'N/A')), size=14, color=ft.Colors.GREEN_700 if jc.get('status', '').lower() == 'open' else ft.Colors.YELLOW_700 if jc.get('status', '').lower() == 'started' else ft.Colors.BLUE_GREY_600, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS)),
-                ft.DataCell(
-                    ft.IconButton(
-                        icon=ft.Icons.VISIBILITY,
-                        icon_color=ft.Colors.BLUE_700,
-                        icon_size=30,
-                        tooltip="View Details",
-                        on_click=lambda e, jc=jc: self.page.run_task(self.show_job_card_detail, jc),
-                        data=jc.get('job_number', 'N/A')
-                    )
-                )
-            ]))
-        return rows
+            status_color = {
+                "Open": ft.Colors.GREEN_600,
+                "Started": ft.Colors.YELLOW_700,
+                "Completed": ft.Colors.BLUE_600
+            }.get(jc.get('status', ''), ft.Colors.GREY_600)
+            status_icon = {
+                "Open": ft.Icons.CIRCLE,
+                "Started": ft.Icons.PLAY_CIRCLE,
+                "Completed": ft.Icons.CHECK_CIRCLE
+            }.get(jc.get('status', ''), ft.Icons.INFO)
+            card = ft.Card(
+                content=ft.Container(
+                    content=ft.Column(
+                        controls=[
+                            ft.Row(
+                                controls=[
+                                    ft.Text(
+                                        jc.get('job_number', 'N/A'),
+                                        size=16,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=ft.Colors.BLUE_900,
+                                        max_lines=1,
+                                        overflow=ft.TextOverflow.ELLIPSIS
+                                    ),
+                                    ft.Container(
+                                        content=ft.Row([
+                                            ft.Icon(status_icon, size=14, color=ft.Colors.WHITE),
+                                            ft.Text(jc.get('status', 'N/A'), size=12, color=ft.Colors.WHITE)
+                                        ], spacing=5, alignment=ft.MainAxisAlignment.CENTER),
+                                        bgcolor=status_color,
+                                        padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                                        border_radius=12
+                                    )
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                            ),
+                            ft.Text(
+                                jc.get('title', 'N/A'),
+                                size=14,
+                                color=ft.Colors.BLACK,
+                                max_lines=2,
+                                overflow=ft.TextOverflow.ELLIPSIS
+                            ),
+                            ft.Text(
+                                f"Created: {self.format_date(jc.get('created_date', 'N/A'))}",
+                                size=12,
+                                color=ft.Colors.BLUE_GREY_600,
+                                max_lines=1
+                            ),
+                            ft.Row(
+                                controls=[
+                                    ft.TextButton(
+                                        text="View",
+                                        icon=ft.Icons.VISIBILITY,
+                                        style=ft.ButtonStyle(
+                                            bgcolor=ft.Colors.BLUE_600,
+                                            color=ft.Colors.WHITE,
+                                            shape=ft.RoundedRectangleBorder(radius=8),
+                                            overlay_color=ft.Colors.BLUE_800,
+                                            elevation={"pressed": 2, "": 6}
+                                        ),
+                                        on_click=lambda e, jc=jc: self.page.run_task(self.show_job_card_detail, jc)
+                                    )
+                                ],
+                                alignment=ft.MainAxisAlignment.END
+                            )
+                        ],
+                        spacing=8
+                    ),
+                    padding=ft.padding.all(12),
+                    bgcolor=ft.Colors.WHITE
+                ),
+                width=360,
+                elevation=3,
+                shape=ft.RoundedRectangleBorder(radius=10),
+                opacity=0,
+                animate_opacity=ft.Animation(400, ft.AnimationCurve.EASE_IN_OUT)
+            )
+            card.opacity = 1  # Trigger fade-in animation
+            cards.append(card)
+        return cards
 
     def format_date(self, date_str):
         """Format date string or return as-is if invalid."""
@@ -543,7 +676,7 @@ class JobCardPage(ft.Container):
             return date_str
 
     async def show_job_card_detail(self, job_card):
-        """Display job card details in a dialog."""
+        """Display job card details in a modern dialog."""
         try:
             created_date = self.format_date(job_card.get('created_date', 'N/A'))
             started_date = self.format_date(job_card.get('started_date', 'N/A'))
@@ -551,33 +684,41 @@ class JobCardPage(ft.Container):
 
             dialog_content = ft.Column(
                 controls=[
-                    ft.Text(f"Job No: {job_card.get('job_number', 'N/A')}", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
-                    ft.Text(f"ID: {job_card.get('id', 'N/A')}", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
-                    ft.Text(f"Title: {job_card.get('title', 'N/A')}", size=12, color=ft.Colors.BLACK, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
-                    ft.Text(f"Description: {job_card.get('description', 'N/A')}", size=12, color=ft.Colors.BLACK, max_lines=3, overflow=ft.TextOverflow.ELLIPSIS),
-                    ft.Text(f"Department: {job_card.get('department_name', 'N/A')}", size=12, color=ft.Colors.BLACK),
-                    ft.Text(f"Entity: {job_card.get('entity_info', 'N/A')}", size=12, color=ft.Colors.BLACK, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
-                    ft.Text(f"Closure: {job_card.get('closure_details', 'N/A')}", size=12, color=ft.Colors.BLACK, max_lines=3, overflow=ft.TextOverflow.ELLIPSIS),
-                    ft.Text(f"Created: {created_date}", size=12, color=ft.Colors.BLACK),
-                    ft.Text(f"Started: {started_date}", size=12, color=ft.Colors.BLACK),
-                    ft.Text(f"Completed: {completed_date}", size=12, color=ft.Colors.BLACK),
-                    ft.Text(f"Status: {job_card.get('status', 'N/A')}", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800)
+                    ft.Text(f"Job No: {job_card.get('job_number', 'N/A')}", size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
+                    ft.Text(f"ID: {job_card.get('id', 'N/A')}", size=14, color=ft.Colors.BLUE_GREY_600),
+                    ft.Text(f"Title:", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
+                    ft.Text(job_card.get('title', 'N/A'), size=14, color=ft.Colors.BLACK, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
+                    ft.Text(f"Description:", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
+                    ft.Text(job_card.get('description', 'N/A'), size=14, color=ft.Colors.BLACK, max_lines=3, overflow=ft.TextOverflow.ELLIPSIS),
+                    ft.Text(f"Department: {job_card.get('department_name', 'N/A')}", size=14, color=ft.Colors.BLACK),
+                    ft.Text(f"Entity: {job_card.get('entity_info', 'N/A')}", size=14, color=ft.Colors.BLACK, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
+                    ft.Text(f"Closure: {job_card.get('closure_details', 'N/A')}", size=14, color=ft.Colors.BLACK, max_lines=3, overflow=ft.TextOverflow.ELLIPSIS),
+                    ft.Text(f"Created: {created_date}", size=14, color=ft.Colors.BLACK),
+                    ft.Text(f"Started: {started_date}", size=14, color=ft.Colors.BLACK),
+                    ft.Text(f"Completed: {completed_date}", size=14, color=ft.Colors.BLACK),
+                    ft.Text(f"Status: {job_card.get('status', 'N/A')}", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800)
                 ],
-                spacing=5,
+                spacing=8,
                 scroll=ft.ScrollMode.AUTO
             )
 
             dialog = ft.AlertDialog(
                 modal=True,
-                title=ft.Text(f"Details (ID: {job_card.get('id', 'N/A')})", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
+                title=ft.Text(f"Job Card Details", size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
                 content=ft.Container(
                     content=dialog_content,
                     width=340,
                     height=400,
-                    padding=ft.padding.all(6),
+                    padding=ft.padding.all(12),
                     bgcolor=ft.Colors.WHITE,
-                    border_radius=8,
-                    border=ft.border.all(1, ft.Colors.BLUE_GREY_200)
+                    border_radius=10,
+                    border=ft.border.all(1, ft.Colors.BLUE_GREY_200),
+                    shadow=ft.BoxShadow(
+                        spread_radius=1,
+                        blur_radius=5,
+                        color=ft.Colors.BLUE_GREY_200,
+                        offset=ft.Offset(0, 2)
+                    )
                 ),
                 actions=[
                     ft.TextButton(
@@ -587,7 +728,8 @@ class JobCardPage(ft.Container):
                             bgcolor=ft.Colors.BLUE_600,
                             color=ft.Colors.WHITE,
                             shape=ft.RoundedRectangleBorder(radius=8),
-                            overlay_color=ft.Colors.BLUE_800
+                            overlay_color=ft.Colors.BLUE_800,
+                            elevation={"pressed": 2, "": 6}
                         )
                     )
                 ],
@@ -616,9 +758,11 @@ class JobCardPage(ft.Container):
             hint_text="Enter job title",
             border_color=ft.Colors.BLUE_300,
             color=ft.Colors.BLUE_900,
-            text_size=12,
+            text_size=14,
             max_lines=1,
-            dense=True
+            dense=True,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=8
         )
         self.job_description = ft.TextField(
             label="Description",
@@ -626,9 +770,11 @@ class JobCardPage(ft.Container):
             multiline=True,
             border_color=ft.Colors.BLUE_300,
             color=ft.Colors.BLUE_900,
-            text_size=12,
-            max_lines=3,
-            dense=True
+            text_size=14,
+            max_lines=4,
+            dense=True,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=8
         )
         self.department_dropdown = ft.Dropdown(
             label="Department",
@@ -636,15 +782,17 @@ class JobCardPage(ft.Container):
             value=str(self.departments[0]['id']) if self.departments else None,
             border_color=ft.Colors.BLUE_300,
             color=ft.Colors.BLUE_900,
-            text_size=12,
+            text_size=14,
             dense=True,
-            disabled=True,  # Disable dropdown as user can only select their department
-            menu_height=200
+            disabled=True,
+            menu_height=200,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=8
         )
 
         dialog = ft.AlertDialog(
             modal=True,
-            title=ft.Text("Create Job Card", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
+            title=ft.Text("Create Job Card", size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
             content=ft.Container(
                 content=ft.Column(
                     controls=[
@@ -652,15 +800,21 @@ class JobCardPage(ft.Container):
                         self.job_description,
                         self.department_dropdown
                     ],
-                    spacing=10,
+                    spacing=12,
                     scroll=ft.ScrollMode.AUTO
                 ),
                 width=340,
-                height=300,
-                padding=ft.padding.all(6),
+                height=320,
+                padding=ft.padding.all(12),
                 bgcolor=ft.Colors.WHITE,
-                border_radius=8,
-                border=ft.border.all(1, ft.Colors.BLUE_GREY_200)
+                border_radius=10,
+                border=ft.border.all(1, ft.Colors.BLUE_GREY_200),
+                shadow=ft.BoxShadow(
+                    spread_radius=1,
+                    blur_radius=5,
+                    color=ft.Colors.BLUE_GREY_200,
+                    offset=ft.Offset(0, 2)
+                )
             ),
             actions=[
                 ft.TextButton(
@@ -669,7 +823,9 @@ class JobCardPage(ft.Container):
                     style=ft.ButtonStyle(
                         bgcolor=ft.Colors.GREY_600,
                         color=ft.Colors.WHITE,
-                        shape=ft.RoundedRectangleBorder(radius=8)
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        overlay_color=ft.Colors.GREY_800,
+                        elevation={"pressed": 2, "": 6}
                     )
                 ),
                 ft.TextButton(
@@ -678,7 +834,9 @@ class JobCardPage(ft.Container):
                     style=ft.ButtonStyle(
                         bgcolor=ft.Colors.TEAL_600,
                         color=ft.Colors.WHITE,
-                        shape=ft.RoundedRectangleBorder(radius=8)
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        overlay_color=ft.Colors.TEAL_800,
+                        elevation={"pressed": 2, "": 6}
                     )
                 )
             ],
@@ -719,26 +877,24 @@ class JobCardPage(ft.Container):
         is_offline = not self.is_online()
 
         try:
-            if not is_offline:
-                conn_mysql = mysql.connector.connect(**db_config)
-                cursor_mysql = conn_mysql.cursor()
-                cursor_mysql.execute("SELECT name FROM department WHERE id = %s", (department_id,))
-                department_data = cursor_mysql.fetchone()
-                if not department_data:
-                    self.show_snack_bar("Invalid department selected.", ft.Colors.RED_800)
-                    await self.close_dialog(None)
-                    return
-                department_name = department_data[0]
-            else:
-                self.show_snack_bar("Offline mode: Department validation requires sync", ft.Colors.YELLOW_800)
+            conn_sqlite = sqlite3.connect(self.sqlite_db_path)
+            cursor_sqlite = conn_sqlite.cursor()
+            cursor_sqlite.execute("PRAGMA foreign_keys = ON")
+            cursor_sqlite.execute("SELECT name FROM department WHERE id = ?", (department_id,))
+            department_data = cursor_sqlite.fetchone()
+            if not department_data:
+                self.show_snack_bar("Invalid department selected.", ft.Colors.RED_800)
                 await self.close_dialog(None)
                 return
+            department_name = department_data[0]
 
             department_prefix = re.sub(r'[^a-zA-Z0-9]', '', department_name)[:10]
             current_date = datetime.now().strftime('%Y%m%d')
             while attempt < max_attempts:
                 try:
                     if not is_offline:
+                        conn_mysql = mysql.connector.connect(**db_config)
+                        cursor_mysql = conn_mysql.cursor()
                         substring_start = len(department_prefix) + 10
                         cursor_mysql.execute("""
                             SELECT MAX(CAST(SUBSTRING(job_number, %s) AS UNSIGNED))
@@ -754,8 +910,6 @@ class JobCardPage(ft.Container):
                             attempt += 1
                             continue
                     else:
-                        conn_sqlite = sqlite3.connect(self.sqlite_db_path)
-                        cursor_sqlite = conn_sqlite.cursor()
                         substring_start = len(department_prefix) + 10
                         cursor_sqlite.execute("""
                             SELECT MAX(CAST(SUBSTRING(job_number, ?) AS INTEGER))
@@ -766,10 +920,6 @@ class JobCardPage(ft.Container):
                         count = (max_sequence or 0) + 1
                         job_number = f"{department_prefix}{current_date}-{count:04d}-D{self.device_id}"
                         job_id = int(f"{department_id}{current_date}{count:04d}")
-                        cursor_sqlite.close()
-                        conn_sqlite.close()
-                        cursor_sqlite = None
-                        conn_sqlite = None
 
                     if len(job_number) > 30:
                         self.show_snack_bar(f"Job number {job_number} too long for {department_name}", ft.Colors.RED_800)
@@ -780,8 +930,6 @@ class JobCardPage(ft.Container):
                     if attempt == max_attempts - 1:
                         is_offline = True
                         self.show_snack_bar("MySQL unavailable: Using device-specific job number", ft.Colors.YELLOW_800)
-                        conn_sqlite = sqlite3.connect(self.sqlite_db_path)
-                        cursor_sqlite = conn_sqlite.cursor()
                         substring_start = len(department_prefix) + 10
                         cursor_sqlite.execute("""
                             SELECT MAX(CAST(SUBSTRING(job_number, ?) AS INTEGER))
@@ -796,20 +944,19 @@ class JobCardPage(ft.Container):
                             self.show_snack_bar(f"Offline job number {job_number} too long for {department_name}", ft.Colors.RED_800)
                             await self.close_dialog(None)
                             return
-                        cursor_sqlite.close()
-                        conn_sqlite.close()
-                        cursor_sqlite = None
-                        conn_sqlite = None
                         break
                     attempt += 1
+                finally:
+                    if cursor_mysql:
+                        cursor_mysql.close()
+                    if conn_mysql:
+                        conn_mysql.close()
 
             if attempt >= max_attempts and not is_offline:
                 self.show_snack_bar("Unable to generate unique job ID after multiple attempts.", ft.Colors.RED_800)
                 await self.close_dialog(None)
                 return
 
-            conn_sqlite = sqlite3.connect(self.sqlite_db_path)
-            cursor_sqlite = conn_sqlite.cursor()
             cursor_sqlite.execute("SELECT id FROM job_cards WHERE id = ? OR job_number = ?", (job_id, job_number))
             if cursor_sqlite.fetchone():
                 self.show_snack_bar("Duplicate job ID or number in SQLite. Try again.", ft.Colors.RED_800)
@@ -823,6 +970,8 @@ class JobCardPage(ft.Container):
             conn_sqlite.commit()
 
             if not is_offline:
+                conn_mysql = mysql.connector.connect(**db_config)
+                cursor_mysql = conn_mysql.cursor()
                 cursor_mysql.execute("""
                     INSERT INTO job_cards (id, job_number, title, description, status, created_date, department_name)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
